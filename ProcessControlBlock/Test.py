@@ -1,7 +1,6 @@
-import queue
 from texttable import Texttable
 
-# Define a class to represent a process in a CPU scheduling scenario.
+
 class Process:
     def __init__(self, process_id, arrival_time, burst_time, execution_time, resources_needed):
         self.process_id = process_id
@@ -18,6 +17,10 @@ class Process:
         self.response_time = 0
         self.state = "new"  
         self.PSW = {"instruction_pointer": 0, "flags": {}}  
+
+        
+        self.IR = None  
+        self.PC = 0 
 
     
     def allocate_resources(self, resources_available):
@@ -37,8 +40,10 @@ class Process:
     
     def decrement_time_left(self):
         self.time_left -= 1
-        # Update instruction pointer in PSW (simulates CPU's instruction pointer)
-        self.PSW["instruction_pointer"] += 1
+        
+        self.PC = self.PSW["instruction_pointer"]
+        self.IR = f"Executing instruction at {self.PC}" 
+        self.PSW["instruction_pointer"] += 1  
 
     
     def set_completion_time(self, time_passed):
@@ -68,15 +73,20 @@ def check_is_execution_completed(process_list):
 
 def print_process_table(process_list):
     table = Texttable()
-    table_rows = [["process_id", "arrival_time", "burst_time", "completion_time", "turn_around_time", "wait_time", "response_time", "PSW", "State"]]
+    
+    table_rows = [["process_id", "arrival_time", "burst_time", "completion_time", "turn_around_time", "wait_time", "response_time", "PSW", "State", "IR", "PC"]]
     for process in process_list:
-        new_row = [process.process_id, process.arrival_time, process.burst_time, process.completion_time, process.turn_around_time, process.wait_time, process.response_time, process.PSW["instruction_pointer"], process.state]
+        new_row = [
+            process.process_id, process.arrival_time, process.burst_time, process.completion_time, 
+            process.turn_around_time, process.wait_time, process.response_time, 
+            process.PSW["instruction_pointer"], process.state, process.IR, process.PC
+        ]
         table_rows.append(new_row)
     table.add_rows(table_rows)
     table.set_max_width(200)
     print(table.draw())
 
-resources_available = 10  # total available resources
+resources_available = 10 
 
 def allocate_resources_to_ready_processes(ready_queue):
     """Allocate resources to processes in the ready queue if resources are available."""
@@ -84,13 +94,13 @@ def allocate_resources_to_ready_processes(ready_queue):
     for process in ready_queue:
         if not process.resources_allocated:
             if process.allocate_resources(resources_available):
-                resources_available -= process.resources_needed  # Deduct allocated resources
+                resources_available -= process.resources_needed  
                 process.state = "ready"  
 
 def release_resources_from_completed_process(process):
     """Release resources when the process is completed."""
     global resources_available
-    resources_available += process.release_resources()  # Return resources back to the pool
+    resources_available += process.release_resources() 
     process.state = "terminated"
 
 if __name__ == "__main__":
@@ -102,7 +112,7 @@ if __name__ == "__main__":
         process_id = i + 1
         arrival_time = input_entity(f'Arrival time of process {process_id}', 0, 10)
         execution_time = input_entity(f'Execution time of process {process_id}', 1, 10)
-        resources_needed = input_entity(f'Resources needed for process {process_id}', 1, 5)  # Asking for resource needs
+        resources_needed = input_entity(f'Resources needed for process {process_id}', 1, 5) 
         processes.append(Process(process_id, arrival_time, execution_time, execution_time, resources_needed))
 
    
@@ -132,17 +142,17 @@ if __name__ == "__main__":
                 running_queue.append(ready_process)
                 ready_process.state = "running"  
 
-                # Simulate process execution with time quanta
+
                 time_quanta = 0
                 while time_quanta < quantum_size:
                     time_passed += 1
                     time_quanta += 1
-                    running_queue[0].decrement_time_left()
+                    running_queue[0].decrement_time_left()  
                     if running_queue[0].time_left == 0:
                         break
 
                 ran_process = running_queue.pop(0)
-                print_process_table([ran_process])
+                print_process_table([ran_process])  
                 put_processes_in_ready_queue(processes)
 
                 if ran_process.time_left > 0:
